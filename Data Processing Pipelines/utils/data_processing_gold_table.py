@@ -58,10 +58,28 @@ def process_labels_gold_table(snapshot_date_str, silver_loan_daily_directory, go
     return df
 
 def process_features_gold_table(snapshot_date_str, silver_dirs, gold_dirs, spark):
-    # Update columns to remove
+    # Update columns to remove - keep only essential features
     cols_to_remove = [
         'label', 'target', 'Name', 'SSN', 'Occupation',
-        'Payment_of_Min_Amount', 'Payment_Behaviour', 'fe_sum'
+        'Payment_of_Min_Amount', 'Payment_Behaviour', 'fe_sum',
+        'fe_1', 'fe_2', 'fe_3', 'fe_4', 'fe_5', 'fe_6', 'fe_7', 'fe_8', 'fe_9',
+        'fe_10', 'fe_11', 'fe_12', 'fe_13', 'fe_14', 'fe_15', 'fe_16', 'fe_17',
+        'fe_18', 'fe_19', 'fe_20', 'Changed_Credit_Limit', 'Credit_History_Age',
+        'Amount_invested_monthly', 'Type_of_Loan'
+    ]
+    
+    # Keep these key features (5-10 most important ones)
+    key_features = [
+        'Annual_Income',
+        'Monthly_Inhand_Salary',
+        'Num_Bank_Accounts',
+        'Num_Credit_Card',
+        'Interest_Rate',
+        'Num_of_Loan',
+        'Outstanding_Debt',
+        'Credit_Utilization_Ratio',
+        'Total_EMI_per_month',
+        'Credit_Mix_encoded'
     ]
     
     # Update numeric columns list to include all numeric features
@@ -159,4 +177,101 @@ def process_features_gold_table(snapshot_date_str, silver_dirs, gold_dirs, spark
              .when(col("Credit_Mix") == "Standard", credit_mix_mapping["Standard"])
              .otherwise(credit_mix_mapping["Bad"]))
     
+    # Final check to ensure only key features remain
+    final_cols = [c for c in features_df.columns 
+                 if c in key_features or 
+                 c in ['Customer_ID', 'snapshot_date']]
+    
+    # Add new derived features
+    features_df = features_df.withColumn(
+        "Debt_to_Income_Ratio",
+        F.when(col("Annual_Income") > 0, 
+              col("Outstanding_Debt") / col("Annual_Income"))
+         .otherwise(None)
+    )
+    
+    features_df = features_df.withColumn(
+        "EMI_Burden_Ratio",
+        F.when(col("Monthly_Inhand_Salary") > 0,
+              col("Total_EMI_per_month") / col("Monthly_Inhand_Salary"))
+         .otherwise(None)
+    )
+    
+    features_df = features_df.withColumn(
+        "Credit_Utilization_Trend",
+        (col("Credit_Utilization_Ratio") - F.lit(0.3)) / F.lit(0.7)  # Normalized against 30% ideal utilization
+    )
+    
+    features_df = features_df.withColumn(
+        "Delinquency_Score",
+        (col("Num_of_Delayed_Payment") * 0.4) + 
+        (col("Delay_from_due_date") * 0.6)
+    )
+    
+    features_df = features_df.select(*final_cols)
+    
+    # Update key_features list to include new derived features
+    key_features.extend([
+        'Debt_to_Income_Ratio',
+        'EMI_Burden_Ratio', 
+        'Credit_Utilization_Trend',
+        'Delinquency_Score'
+    ])
+    
+    # Define 8 most essential features (5 base + 3 derived)
+    essential_features = [
+        'Annual_Income',                    # Financial capacity
+        'Outstanding_Debt',                 # Current liabilities
+        'Credit_Utilization_Ratio',         # Credit usage pattern
+        'Total_EMI_per_month',             # Monthly obligations
+        'Num_of_Delayed_Payment',           # Payment behavior
+        'Debt_to_Income_Ratio',             # Derived: Debt burden
+        'EMI_Burden_Ratio',                 # Derived: Payment pressure
+        'Credit_Mix_encoded'                # Derived: Credit quality
+    ]
+
+    # Load and join feature tables (simplified)
+    feature_dfs = []
+    for feature_type in ["financials", "attributes"]:
+        path = os.path.join(silver_dirs[feature_type], 
+                          f"silver_{feature_type}_{snapshot_date_str.replace('-','_')}.parquet")
+        if os.path.exists(path):
+            feature_dfs.append(spark.read.parquet(path))
+    
+    if not feature_dfs:
+        print("Error: No feature files found")
+        return None
+
+    features_df = reduce(lambda a, b: a.join(b, ["Customer_ID", "snapshot_date"], "left"), feature_dfs)
+    
+    # Create derived features
+    features_df = features_df.withColumn(
+        "Debt_to_Income_Ratio",
+        F.when(col("Annual_Income") > 0, 
+              col("Outstanding_Debt") / col("Annual_Income"))
+         .otherwise(None)
+    )
+    
+    features_df = features_df.withColumn(
+        "EMI_Burden_Ratio",
+        F.when(col("Monthly_Inhand_Salary") > 0,
+              col("Total_EMI_per_month") / col("Monthly_Inhand_Salary"))
+         .otherwise(None)
+    )
+    
+    # Encode Credit Mix
+    features_df = features_df.withColumn("Credit_Mix_encoded",
+        F.when(col("Credit_Mix") == "Good", 2)
+         .when(col("Credit_Mix") == "Standard", 1)
+         .otherwise(0)
+    )
+
+    # Select only essential features
+    features_df = features_df.select(
+        ['Customer_ID', 'snapshot_date'] + essential_features
+    )
+
+    # Save and return
+    gold_path = gold_dirs["feature_store"] + f"gold_feature_store_{snapshot_date_str.replace('-','_')}.parquet"
+    features_df.write.mode("overwrite").parquet(gold_path)
     return features_df
