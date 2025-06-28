@@ -1,0 +1,113 @@
+{
+  "timestamp": "2025-06-28T11:55:50.506817",
+  "current_data_path": "datamart/predictions/predictions_training.csv",
+  "current_data_shape": [
+    8974,
+    23
+  ],
+  "reference_data_shape": [
+    8974,
+    18
+  ],
+  "data_quality": {
+    "status": "OK",
+    "total_rows": 8974,
+    "missing_values": 1708,
+    "missing_percentage": 0.83,
+    "columns": 23
+  },
+  "psi_drift_results": {
+    "psi_results": {
+      "Annual_Income": {
+        "psi": 0.0,
+        "drift_detected": false,
+        "threshold": 0.1
+      },
+      "Outstanding_Debt": {
+        "psi": 0.0,
+        "drift_detected": false,
+        "threshold": 0.1
+      },
+      "EMI_Burden_Ratio": {
+        "psi": 0.0,
+        "drift_detected": false,
+        "threshold": 0.1
+      },
+      "Delay_from_due_date": {
+        "psi": 0.0,
+        "drift_detected": false,
+        "threshold": 0.1
+      },
+      "Credit_Mix_encoded": {
+        "psi": 0.0,
+        "drift_detected": false,
+        "threshold": 0.1
+      },
+      "Num_Credit_Card": {
+        "psi": 0.0,
+        "drift_detected": false,
+        "threshold": 0.1
+      },
+      "Total_EMI_per_month": {
+        "psi": 0.0,
+        "drift_detected": false,
+        "threshold": 0.1
+      },
+      "Interest_Rate": {
+        "psi": 0.0,
+        "drift_detected": false,
+        "threshold": 0.1
+      },
+      "Num_of_Loan": {
+        "psi": 0.0,
+        "drift_detected": false,
+        "threshold": 0.1
+      },
+      "Monthly_Balance": {
+        "psi": 0.0,
+        "drift_detected": false,
+        "threshold": 0.1
+      },
+      "Num_of_Delayed_Payment": {
+        "psi": 0.0,
+        "drift_detected": false,
+        "threshold": 0.1
+      },
+      "Debt_to_Income_Ratio": {
+        "psi": 0.0,
+        "drift_detected": false,
+        "threshold": 0.1
+      },
+      "Monthly_Inhand_Salary": {
+        "psi": 0.0,
+        "drift_detected": false,
+        "threshold": 0.1
+      },
+      "Num_Bank_Accounts": {
+        "psi": 0.0,
+        "drift_detected": false,
+        "threshold": 0.1
+      },
+      "Credit_Utilization_Ratio": {
+        "psi": 0.0,
+        "drift_detected": false,
+        "threshold": 0.1
+      },
+      "Age": {
+        "psi": 0.0,
+        "drift_detected": false,
+        "threshold": 0.1
+      }
+    },
+    "drift_detected": false,
+    "summary": {
+      "total_features_analyzed": 16,
+      "numeric_features": 16,
+      "features_with_drift": 0,
+      "drift_percentage": 0.0
+    }
+  },
+  "alerts": [],
+  "status": "OK",
+  "output_directory": "datamart/gold/monitoring_report/monitoring_20250628_115550"
+}
